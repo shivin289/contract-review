@@ -1,0 +1,39 @@
+"""Clerk session-token verification. The user id comes ONLY from the verified JWT."""
+from functools import lru_cache
+
+import jwt
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from .config import settings
+
+bearer = HTTPBearer(auto_error=False)
+
+
+@lru_cache(maxsize=1)
+def _jwks() -> jwt.PyJWKClient:
+    return jwt.PyJWKClient(settings.clerk_jwks_url, cache_keys=True)
+
+
+def current_user(creds: HTTPAuthorizationCredentials | None = Depends(bearer)) -> str:
+    if creds is None:
+        raise HTTPException(401, "Missing bearer token")
+    try:
+        key = _jwks().get_signing_key_from_jwt(creds.credentials).key
+        claims = jwt.decode(
+            creds.credentials,
+            key,
+            algorithms=["RS256"],
+            issuer=settings.clerk_issuer or None,
+            options={"require": ["exp", "sub"], "verify_aud": False},
+            leeway=10,
+        )
+    except Exception as exc:
+        print(
+            f"Clerk JWT verification failed: "
+            f"{type(exc).__name__}: {exc}",
+            flush=True,
+        )
+        raise HTTPException(401, "Invalid or expired session token")
+    
+    return claims["sub"]

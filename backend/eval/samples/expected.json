@@ -1,0 +1,4 @@
+{
+  "contract_a.txt": {"parties":"found","start_term":"found","payment":"found","termination":"found","liability":"found","confidentiality":"found","governing_law":"found","auto_renewal":"found"},
+  "contract_b.txt": {"parties":"found","start_term":"found","payment":"found","termination":"found","liability":"not found","confidentiality":"found","governing_law":"found","auto_renewal":"not found"}
+}
